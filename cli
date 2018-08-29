@@ -6,5 +6,5 @@ const TradingBot = require("./Bundle");
 const application = solfege.factory(`${__dirname}/config/production.yml`);
 application.addBundle(new TradingBot);
 
-const parameters = process.argv.slice(2);
+const [,, ...parameters] = process.argv;
 application.start(parameters);
