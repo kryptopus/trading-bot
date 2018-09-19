@@ -1,0 +1,16 @@
+services:
+  run_bot_command:
+    class: commands/RunBot
+    arguments:
+      - "@container"
+      - "%bots%"
+    tags:
+      - { name: "solfege.console.command" }
+
+  candlestick_fetcher:
+    class: services/CandlestickFetcher
+
+  a:
+    class: buySignals/A
+    arguments:
+      - "@candlestick_fetcher"
