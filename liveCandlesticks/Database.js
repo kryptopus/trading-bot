@@ -6,6 +6,10 @@ module.exports = class Database {
   addCandlestick(exchangeName, baseAsset, quoteAsset, interval, candle) {
     const chart = this.getChart(exchangeName, baseAsset, quoteAsset, interval);
     chart.push(candle);
+
+    if (chart.length > 1000) {
+      chart.shift();
+    }
   }
 
   getExchange(name) {

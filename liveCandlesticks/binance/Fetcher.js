@@ -1,6 +1,7 @@
 const axios = require("axios");
 const api = require("binance");
 const Candlestick = require("../Candlestick");
+const binanceRest = new api.BinanceRest({});
 const binanceWS = new api.BinanceWS();
 
 module.exports = class Fetcher {
@@ -13,13 +14,65 @@ module.exports = class Fetcher {
       .get(`https://api.binance.com/api/v1/exchangeInfo`, {
         responseType: "json"
       })
-      .then(response => {
+      .then(async response => {
         const symbols = response.data.symbols;
 
         for (let symbol of symbols) {
-          this.createWebsocket(symbol.baseAsset, symbol.quoteAsset, "1m");
+          const { baseAsset, quoteAsset } = symbol;
+
+          await this.fetchSymbol(baseAsset, quoteAsset, "5m");
+          await this.fetchSymbol(baseAsset, quoteAsset, "15m");
+          await this.fetchSymbol(baseAsset, quoteAsset, "30m");
+          await this.fetchSymbol(baseAsset, quoteAsset, "1h");
+
+          console.log(`Create websockets ${baseAsset} ${quoteAsset}`);
+          this.createWebsocket(baseAsset, quoteAsset, "5m");
+          this.createWebsocket(baseAsset, quoteAsset, "15m");
+          this.createWebsocket(baseAsset, quoteAsset, "30m");
+          this.createWebsocket(baseAsset, quoteAsset, "1h");
         }
+      })
+      .then(() => {
+        console.log("Binance fetched");
       });
+  }
+
+  async fetchSymbol(baseAsset, quoteAsset, interval) {
+    console.log(`Fetch symbol ${baseAsset} ${quoteAsset} ${interval}`);
+    const candles = await binanceRest.klines({
+      symbol: baseAsset + quoteAsset,
+      interval,
+    });
+
+    /*
+    {
+      openTime: 1536112800000,                                                                                                                               │
+      open: '0.03887700',                                                                                                                                    │
+      high: '0.03890000',                                                                                                                                    │
+      low: '0.03871300',                                                                                                                                     │
+      close: '0.03877300',                                                                                                                                   │
+      volume: '6233.18200000',                                                                                                                               │
+      closeTime: 1536116399999,                                                                                                                              │
+      quoteAssetVolume: '241.93313130',                                                                                                                      │
+      trades: 4724,                                                                                                                                          │
+      takerBaseAssetVolume: '3256.93200000',                                                                                                                 │
+      takerQuoteAssetVolume: '126.42735935',                                                                                                                 │
+      ignored: '0'
+    }
+    */
+    candles.pop();
+    for (let candle of candles) {
+      this.collect(baseAsset, quoteAsset, interval, {
+        startTime: candle.openTime,
+        endTime: candle.closeTime,
+        open: candle.open,
+        close: candle.close,
+        high: candle.high,
+        low: candle.low,
+        volume: candle.volume,
+        final: true,
+      });
+    }
   }
 
   collect(baseAsset, quoteAsset, interval, candle) {
@@ -38,7 +91,7 @@ module.exports = class Fetcher {
       low,
       volume
     );
-    this.database.addCandlestick("binance", baseAsset, quoteAsset, "1m", candlestick);
+    this.database.addCandlestick("binance", baseAsset, quoteAsset, interval, candlestick);
   }
 
   createWebsocket(baseAsset, quoteAsset, interval) {
@@ -48,7 +101,6 @@ module.exports = class Fetcher {
       this.collect(baseAsset, quoteAsset, interval, data.kline);
     });
     ws.on("close", () => {
-      console.error(`Websocket closed: ${symbol}`);
       this.createWebsocket(baseAsset, quoteAsset, interval);
     });
   }

@@ -14,12 +14,26 @@ module.exports = class Client {
     });
   }
 
-  getChart(exchange, baseAsset, quoteAsset, interval) {
+  ensureConnection() {
     return new Promise((resolve, reject) => {
-      if (!this.isConnected) {
+      if (this.isConnected) {
+        resolve(true);
         return;
       }
 
+      this.connect();
+      const timer = setInterval(() => {
+        if (this.isConnected) {
+          resolve(true);
+          clearInterval(timer);
+        }
+      }, 1000);
+    });
+  }
+
+  async getChart(exchange, baseAsset, quoteAsset, interval) {
+    await this.ensureConnection();
+    return new Promise((resolve, reject) => {
       this.socket.emit("getChart", exchange, baseAsset, quoteAsset, interval, (candles) => {
         resolve(candles);
       });
