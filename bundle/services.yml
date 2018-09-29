@@ -10,7 +10,38 @@ services:
   candlestick_fetcher:
     class: services/CandlestickFetcher
 
-  a:
-    class: buySignals/A
+  price_fetcher:
+    class: services/PriceFetcher
     arguments:
       - "@candlestick_fetcher"
+
+  exchange_factory:
+    class: services/ExchangeFactory
+    arguments:
+      - "@price_fetcher"
+      - "%exchanges%"
+
+  # SIGNALS
+
+  falseSignal:
+    class: signals/False
+
+  everyMinute:
+    class: signals/EveryMinute
+
+  macdCrossUp:
+    class: signals/MacdCrossUp
+    arguments:
+      - "@candlestick_fetcher"
+
+  # ENTRY STRATEGIES
+
+  buyAtMarket:
+    class: entryStrategies/BuyAtMarket
+    arguments:
+      - "@exchange_factory"
+
+  # TAKE PROFIT STRATEGIES
+
+  singlePercent:
+    class: takeProfitStrategies/SinglePercent

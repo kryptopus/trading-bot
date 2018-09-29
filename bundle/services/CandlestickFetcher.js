@@ -6,11 +6,9 @@ module.exports = class CandlestickFetcher {
     this.client.connect();
   }
 
-  async fetchLastCandles(exchange, baseAsset, quoteAsset, interval = "1m", count = 10) {
+  async fetchLastCandles(exchangeSymbol, interval = "5m", count = 10) {
+    const { exchange, baseAsset, quoteAsset } = exchangeSymbol;
     const candles = await this.client.getChart(exchange, baseAsset, quoteAsset, interval);
-    if (candles.length > count) {
-      return candles.slice(-count);
-    }
-    return candles;
+    return candles.slice(-count);
   }
 };

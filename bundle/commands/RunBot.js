@@ -1,4 +1,6 @@
+const minimist = require("minimist");
 const AbstractCommand = require("@solfege/cli/lib/Command/AbstractCommand");
+const ExchangeSymbol = require("../model/ExchangeSymbol");
 const wait = require("../utils/wait");
 
 const STATUS_WAITING_BUY_SIGNAL = "waiting buy signal";
@@ -22,42 +24,35 @@ module.exports = class ExecuteBot extends AbstractCommand {
   async execute(parameters) {
     const [id, exchange, baseAsset, quoteAsset] = parameters;
     const botConfig = this.config[id];
+    const exchangeSymbol = new ExchangeSymbol(exchange, baseAsset, quoteAsset);
 
     let iteration = 1;
     while (true) {
       await this.start(
         iteration,
-        exchange,
-        baseAsset,
-        quoteAsset,
-        botConfig,
+        exchangeSymbol,
+        botConfig
       );
       await wait(1);
       iteration++;
     }
   }
 
-  async start(iteration, exchange, baseAsset, quoteAsset, config) {
-    console.log(`[${iteration}] START`);
+  async start(iteration, exchangeSymbol, config) {
+    const argv = minimist(process.argv.slice(2));
+    const entrySignalParameters = { ...config.entrySignal, ...argv };
+    const entryStrategyParameters = { ...config.entryStrategy, ...argv };
 
-    const {id:entrySignalId, ...entrySignalParameters} = config.entrySignal;
-    const entrySignal = await this.serviceContainer.get(entrySignalId);
-    while (true) {
-      if (await entrySignal.isValidated(exchange, baseAsset, quoteAsset, entrySignalParameters)) {
-        break;
-      }
-      await wait(1);
-    }
+    console.log(`${iteration} | ${new Date().toISOString()} > START`);
 
+    await this.isEntrySignalValidated(exchangeSymbol, entrySignalParameters);
     console.log(`[${iteration}] VALIDATED ENTRY SIGNAL`);
 
-    const {id:entryStrategyId, ...entryStrategyParameters} = config.entryStrategy;
-    const entryStrategy = await this.serviceContainer.get(entryStrategyId);
-    const entry = await entryStrategy.create(exchange, baseAsset, quoteAsset, entryStrategyParameters);
+    const entry = await this.createEntry(exchangeSymbol, entryStrategyParameters);
     while (true) {
-      if (await this.isExitValidated(exchange, baseAsset, quoteAsset, config.exitSignals)) {
+      if (await this.isExitValidated(exchangeSymbol, config.exitSignals, argv)) {
         await entry.cancel();
-        console.log(`[${iteration}] EXIT`);
+        console.log(`${iteration} | ${new Date().toISOString()} > EXIT`);
         return;
       }
 
@@ -66,8 +61,7 @@ module.exports = class ExecuteBot extends AbstractCommand {
       }
       await wait(1);
     }
-
-    console.log(`[${iteration}] POSITIONNED`);
+    console.log(`${iteration} | ${new Date().toISOString()} > POSITIONED`);
 
     const {id:takeProfitStrategyId, ...takeProfitStrategyParameters} = config.takeProfitStrategy;
     const takeProfitStrategy = await this.serviceContainer.get(takeProfitStrategyId);
@@ -77,22 +71,41 @@ module.exports = class ExecuteBot extends AbstractCommand {
         break;
       }
 
-      if (await this.isExitValidated(exchange, baseAsset, quoteAsset, config.exitSignals)) {
+      if (await this.isExitValidated(exchangeSymbol, config.exitSignals, argv)) {
         await takeProfit.cancel();
-        console.log(`[${iteration}] EXIT`);
+        console.log(`${iteration} | ${new Date().toISOString()} > EXIT`);
         return;
       }
       await wait(1);
     }
 
-    console.log(`[${iteration}] FILLED`);
+    console.log(`${iteration} | ${new Date().toISOString()} > FILLED`);
   }
 
-  async isExitValidated(exchange, baseAsset, quoteAsset, configExitSignals) {
-    for ({exitSignalId, ...exitSignalParameters} of configExitSignals) {
+  async isEntrySignalValidated(exchangeSymbol, configEntrySignal) {
+    const {id:entrySignalId, ...entrySignalParameters} = configEntrySignal;
+    const entrySignal = await this.serviceContainer.get(entrySignalId);
+    while (true) {
+      if (await entrySignal.isValidated(exchangeSymbol, entrySignalParameters)) {
+        break;
+      }
+      await wait(1);
+    }
 
-      const entrySignal = await this.serviceContainer.get(exitSignalId);
-      const isValidated = await exitSignal.isValidated(exchange, baseAsset, quoteAsset);
+    return true;
+  }
+
+  async createEntry(exchangeSymbol, configEntryStrategy) {
+    const {id:entryStrategyId, ...entryStrategyParameters} = configEntryStrategy;
+    const entryStrategy = await this.serviceContainer.get(entryStrategyId);
+    return await entryStrategy.create(exchangeSymbol, entryStrategyParameters);
+  }
+
+  async isExitValidated(exchangeSymbol, configExitSignals, argv) {
+    for ({id, ...exitSignalParameters} of configExitSignals) {
+
+      const entrySignal = await this.serviceContainer.get(id);
+      const isValidated = await exitSignal.isValidated(exchangeSymbol, { ...exitSignalParameters, ...argv });
       if (isValidated) {
         return true;
       }
