@@ -34,6 +34,11 @@ services:
     arguments:
       - "@candlestick_fetcher"
 
+  macdCrossDown:
+    class: signals/MacdCrossDown
+    arguments:
+      - "@candlestick_fetcher"
+
   # ENTRY STRATEGIES
 
   buyAtMarket:
@@ -43,5 +48,6 @@ services:
 
   # TAKE PROFIT STRATEGIES
 
-  singlePercent:
-    class: takeProfitStrategies/SinglePercent
+  singleFactor:
+    class: takeProfitStrategies/SingleFactor
+

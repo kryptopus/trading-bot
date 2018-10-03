@@ -46,7 +46,7 @@ module.exports = class ExecuteBot extends AbstractCommand {
     console.log(`${iteration} | ${new Date().toISOString()} > START`);
 
     await this.isEntrySignalValidated(exchangeSymbol, entrySignalParameters);
-    console.log(`[${iteration}] VALIDATED ENTRY SIGNAL`);
+    console.log(`${iteration} | ${new Date().toISOString()} > VALIDATED ENTRY SIGNAL`);
 
     const entry = await this.createEntry(exchangeSymbol, entryStrategyParameters);
     while (true) {
@@ -102,9 +102,9 @@ module.exports = class ExecuteBot extends AbstractCommand {
   }
 
   async isExitValidated(exchangeSymbol, configExitSignals, argv) {
-    for ({id, ...exitSignalParameters} of configExitSignals) {
-
-      const entrySignal = await this.serviceContainer.get(id);
+    for (let configExitSignal of configExitSignals) {
+      const {id, ...exitSignalParameters} = configExitSignal;
+      const exitSignal = await this.serviceContainer.get(id);
       const isValidated = await exitSignal.isValidated(exchangeSymbol, { ...exitSignalParameters, ...argv });
       if (isValidated) {
         return true;

@@ -1,6 +1,6 @@
 const TakeProfit = require("../model/TakeProfit");
 
-module.exports = class SinglePercent {
+module.exports = class SingleFactor {
   async create(entry, parameters) {
     const exchange = entry.getExchange();
     const baseQuantity = entry.getBaseQuantity();
@@ -9,12 +9,11 @@ module.exports = class SinglePercent {
     const quoteAsset = entry.getQuoteAsset();
 
     const orders = await exchange.sellAtLimitByBaseQuantity(
-        baseAsset,
-        quoteAsset,
-        baseQuantity,
-        price
-      );
-    }
+      baseAsset,
+      quoteAsset,
+      baseQuantity,
+      price * parameters.factor
+    );
 
     const takeProfit = new TakeProfit(orders);
 

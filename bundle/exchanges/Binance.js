@@ -52,13 +52,20 @@ module.exports = class Binance {
       side: "SELL",
       type: "LIMIT",
       timeInForce: "GTC",
-      price: price,
+      price: await this.computeMaxPrice(baseAsset, quoteAsset, price),
       quantity: baseQuantity,
       newOrderRespType: "FULL",
       timestamp: (new Date()).getTime()
     };
 
-    const binanceOrder = await this.binanceRest.newOrder(orderRequest);
+
+    let binanceOrder;
+    try {
+      binanceOrder = await this.binanceRest.newOrder(orderRequest);
+    } catch (error) {
+      console.error("Unable to sell", orderRequest);
+      throw new Error(`Unable to sell: ${error.msg} (Code ${error.code})`);
+    }
     const order = this.convertOrder(baseAsset, quoteAsset, binanceOrder);
     return [order];
   }
@@ -87,12 +94,26 @@ module.exports = class Binance {
     let baseQuantity = new BigNumber(0);
     let quoteSpent = new BigNumber(0);
     while (quoteSpent.isLessThan(quoteQuantityLimit)) {
-        baseQuantity = baseQuantity.plus(stepSize);
-        quoteSpent = baseQuantity.times(lastPrice);
+      baseQuantity = baseQuantity.plus(stepSize);
+      quoteSpent = baseQuantity.times(lastPrice);
     }
     baseQuantity = baseQuantity.minus(stepSize);
 
     return baseQuantity.toString();
+  }
+
+  async computeMaxPrice(baseAsset, quoteAsset, price) {
+    const definition = await this.getSymbolDefinition(baseAsset, quoteAsset);
+    const tickSize = this.getDefinitionTickSize(definition);
+
+    const priceLimit = new BigNumber(price);
+    let currentPrice = new BigNumber(0);
+    while (currentPrice.isLessThan(priceLimit)) {
+      currentPrice = currentPrice.plus(tickSize);
+    }
+    currentPrice = currentPrice.minus(tickSize);
+
+    return currentPrice.toNumber();
   }
 
   getDefinitionStepSize(definition) {
@@ -106,6 +127,19 @@ module.exports = class Binance {
       }
     }
     return stepSize;
+  }
+
+  getDefinitionTickSize(definition) {
+    let tickSize = 0.0001;
+    if (Array.isArray(definition.filters)) {
+      for (let index = 0; index < definition.filters.length; index++) {
+        const filter = definition.filters[index];
+        if (filter.filterType === "PRICE_FILTER") {
+          tickSize = Number(filter.tickSize);
+        }
+      }
+    }
+    return tickSize;
   }
 
   getDefinitionBasePrecision(definition) {

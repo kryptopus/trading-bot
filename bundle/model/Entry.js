@@ -21,14 +21,14 @@ module.exports = class Entry {
   }
 
   getPrice() {
+    let sum = 0;
     let sumBaseQuantity = 0;
-    let sumQuoteQuantity = 0;
     for (let order of this.orders) {
       sumBaseQuantity += order.baseQuantity;
-      sumQuoteQuantity += order.quoteQuantity * order.price;
+      sum += order.baseQuantity * order.price;
     }
 
-    return sumQuoteQuantity / sumBaseQuantity;
+    return sum / sumBaseQuantity;
   }
 
   getBaseAsset() {
