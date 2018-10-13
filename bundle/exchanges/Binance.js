@@ -41,7 +41,13 @@ module.exports = class Binance {
       timestamp: (new Date()).getTime()
     };
 
-    const binanceOrder = await this.binanceRest.newOrder(orderRequest);
+    let binanceOrder;
+    try {
+      binanceOrder = await this.binanceRest.newOrder(orderRequest);
+    } catch (error) {
+      console.error("Unable to buy", orderRequest);
+      throw new Error(`Unable to buy: ${error.msg} (Code ${error.code})`);
+    }
     const order = this.convertOrder(baseAsset, quoteAsset, binanceOrder);
     return [order];
   }

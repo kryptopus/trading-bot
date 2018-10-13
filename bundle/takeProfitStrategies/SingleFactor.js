@@ -18,6 +18,5 @@ module.exports = class SingleFactor {
     const takeProfit = new TakeProfit(orders);
 
     return takeProfit;
-
   }
 }

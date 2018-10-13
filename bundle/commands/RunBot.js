@@ -28,11 +28,15 @@ module.exports = class ExecuteBot extends AbstractCommand {
 
     let iteration = 1;
     while (true) {
-      await this.start(
-        iteration,
-        exchangeSymbol,
-        botConfig
-      );
+      try {
+        await this.start(
+          iteration,
+          exchangeSymbol,
+          botConfig
+        );
+      } catch (error) {
+        console.error(`${iteration} | ${new Date().toISOString()} > FAIL: ${error.message}`);
+      }
       await wait(1);
       iteration++;
     }
