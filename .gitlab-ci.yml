@@ -1,7 +1,7 @@
-unit-tests:
+Unit tests:
   image: node:10
   before_script:
-    - apt-get update -qq && apt-get install -y -qq build-essential
+    - npm install tulind@0.8.13 --build-from-source
     - npm ci
   script:
     - npm test
