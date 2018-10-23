@@ -1,6 +1,7 @@
 unit-tests:
   image: node:10
   before_script:
+    - apt-get update -qq && apt-get install -y -qq build-essential
     - npm ci
-  script: 
+  script:
     - npm test
