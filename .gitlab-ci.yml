@@ -1,6 +1,13 @@
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - node_modules
+
+before_script:
+  - npm ci --build-from-source
+
 Unit tests:
   image: node:10
-  before_script:
-    - npm ci --build-from-source
   script:
     - npm test
+  coverage: '/^All files\s+\|\s+\d+\.*\d*\s+\|\s*(\d+\.*\d*)/'
