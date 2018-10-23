@@ -1,7 +1,6 @@
 Unit tests:
   image: node:10
   before_script:
-    - npm install tulind@0.8.13 --build-from-source
-    - npm ci
+    - npm ci --build-from-source
   script:
     - npm test
