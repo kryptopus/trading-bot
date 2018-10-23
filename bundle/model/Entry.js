@@ -61,5 +61,10 @@ module.exports = class Entry {
     for (let order of this.orders) {
       await order.cancel();
     }
+    await this.exit();
+  }
+
+  async exit() {
+
   }
 };

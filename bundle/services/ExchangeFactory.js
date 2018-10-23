@@ -17,7 +17,7 @@ module.exports = class ExchangeFactory {
         const { apiKey, apiSecret } = parameters;
         const exchange  = new Binance(apiKey, apiSecret, this.priceFetcher);
         return exchange;
-      } break;
+      }
     }
 
     throw new Error(`Unknown exchange type "${type}"`);

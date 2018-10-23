@@ -1,5 +1,9 @@
 module.exports = async function(seconds) {
-  return new Promise((resolve, reject) => {
+  if (seconds <= 0 || isNaN(seconds)) {
+    return Promise.resolve();
+  }
+
+  return new Promise(resolve => {
     setTimeout(resolve, seconds * 1000);
   });
 }

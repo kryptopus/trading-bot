@@ -3,11 +3,6 @@ const AbstractCommand = require("@solfege/cli/lib/Command/AbstractCommand");
 const ExchangeSymbol = require("../model/ExchangeSymbol");
 const wait = require("../utils/wait");
 
-const STATUS_WAITING_BUY_SIGNAL = "waiting buy signal";
-const STATUS_BUYING = "buying";
-const STATUS_SESSION_STARTED = "session started";
-const STATUS_SESSION_ENDED = "session ended";
-
 module.exports = class ExecuteBot extends AbstractCommand {
   constructor(serviceContainer, config) {
     super();
@@ -27,7 +22,7 @@ module.exports = class ExecuteBot extends AbstractCommand {
     const exchangeSymbol = new ExchangeSymbol(exchange, baseAsset, quoteAsset);
 
     let iteration = 1;
-    while (true) {
+    while (iteration > 0) {
       try {
         await this.start(
           iteration,
@@ -35,7 +30,7 @@ module.exports = class ExecuteBot extends AbstractCommand {
           botConfig
         );
       } catch (error) {
-        console.error(`${iteration} | ${new Date().toISOString()} > FAIL: ${error.message}`);
+        process.stderr.write(`${iteration} | ${new Date().toISOString()} > FAIL: ${error.message}\n`);
       }
       await wait(1);
       iteration++;
@@ -47,52 +42,42 @@ module.exports = class ExecuteBot extends AbstractCommand {
     const entrySignalParameters = { ...config.entrySignal, ...argv };
     const entryStrategyParameters = { ...config.entryStrategy, ...argv };
 
-    console.log(`${iteration} | ${new Date().toISOString()} > START`);
+    process.stdout.write(`${iteration} | ${new Date().toISOString()} > START\n`);
 
     await this.isEntrySignalValidated(exchangeSymbol, entrySignalParameters);
-    console.log(`${iteration} | ${new Date().toISOString()} > VALIDATED ENTRY SIGNAL`);
+    process.stdout.write(`${iteration} | ${new Date().toISOString()} > VALIDATED ENTRY SIGNAL\n`);
 
     const entry = await this.createEntry(exchangeSymbol, entryStrategyParameters);
-    while (true) {
+    while (!await entry.isFilled()) {
       if (await this.isExitValidated(exchangeSymbol, config.exitSignals, argv)) {
         await entry.cancel();
-        console.log(`${iteration} | ${new Date().toISOString()} > EXIT`);
+        process.stdout.write(`${iteration} | ${new Date().toISOString()} > EXIT\n`);
         return;
       }
 
-      if (await entry.isFilled()) {
-        break;
-      }
       await wait(1);
     }
-    console.log(`${iteration} | ${new Date().toISOString()} > POSITIONED`);
+    process.stdout.write(`${iteration} | ${new Date().toISOString()} > POSITIONED\n`);
 
     const {id:takeProfitStrategyId, ...takeProfitStrategyParameters} = config.takeProfitStrategy;
     const takeProfitStrategy = await this.serviceContainer.get(takeProfitStrategyId);
     const takeProfit = await takeProfitStrategy.create(entry, takeProfitStrategyParameters);
-    while (true) {
-      if (await takeProfit.isFilled()) {
-        break;
-      }
-
+    while (!await takeProfit.isFilled()) {
       if (await this.isExitValidated(exchangeSymbol, config.exitSignals, argv)) {
         await takeProfit.cancel();
-        console.log(`${iteration} | ${new Date().toISOString()} > EXIT`);
+        process.stdout.write(`${iteration} | ${new Date().toISOString()} > EXIT\n`);
         return;
       }
       await wait(1);
     }
 
-    console.log(`${iteration} | ${new Date().toISOString()} > FILLED`);
+    process.stdout.write(`${iteration} | ${new Date().toISOString()} > FILLED\n`);
   }
 
   async isEntrySignalValidated(exchangeSymbol, configEntrySignal) {
     const {id:entrySignalId, ...entrySignalParameters} = configEntrySignal;
     const entrySignal = await this.serviceContainer.get(entrySignalId);
-    while (true) {
-      if (await entrySignal.isValidated(exchangeSymbol, entrySignalParameters)) {
-        break;
-      }
+    while (!await entrySignal.isValidated(exchangeSymbol, entrySignalParameters)) {
       await wait(1);
     }
 

@@ -10,6 +10,7 @@
     "node": ">= 10"
   },
   "dependencies": {
+    "@solfege/cli": "^5.0.0",
     "axios": "^0.18.0",
     "bignumber.js": "^7.2.1",
     "binance": "^1.3.3",
@@ -32,10 +33,10 @@
     "list": "pm2 list",
     "dashboard": "pm2 dashboard",
     "prepare": "npm run lint",
-    "lint": "eslint --ignore-pattern \"**/*.test.js\" --format=node_modules/eslint-formatter-pretty lib",
+    "lint": "eslint --ignore-pattern \"**/*.test.js\" --format=node_modules/eslint-formatter-pretty bundle",
     "test": "jest",
     "watch": "watch 'echo \"\\033[41;37m      LINT      \\033[0m\"; npm run --silent lint' ./lib",
-    "prepublish": "npm run lint"
+    "prepublish": "npm run lint && npm test"
   },
   "eslintConfig": {
     "parserOptions": {
@@ -48,7 +49,10 @@
     "rules": {
       "indent": [
         "error",
-        2
+        2,
+        {
+          "SwitchCase": 1
+        }
       ]
     }
   },
@@ -58,7 +62,7 @@
     ],
     "collectCoverage": true,
     "collectCoverageFrom": [
-      "lib/**/*.js"
+      "bundle/**/*.js"
     ],
     "verbose": true,
     "testURL": "http://localhost/"

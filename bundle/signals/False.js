@@ -1,5 +1,5 @@
 module.exports = class Signal {
-  async isValidated(exchangeSymbol, parameters) {
+  async isValidated() {
     return false;
   }
 }

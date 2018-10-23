@@ -5,11 +5,11 @@ module.exports = class Signal {
     this.candlestickFetcher = candlestickFetcher;
   }
 
-  async isValidated(exchangeSymbol, parameters) {
+  async isValidated(exchangeSymbol) {
     const candles = await this.candlestickFetcher.fetchLastCandles(exchangeSymbol, "5m", 1000);
 
     const closes = candles.map(candle => candle.close);
-    const [macd, signal, histogram] = await tulind.indicators.macd.indicator([closes], [12, 26, 9]);
+    const [macd, signal] = await tulind.indicators.macd.indicator([closes], [12, 26, 9]);
     const count = macd.length;
 
     const previousMacd = macd[count - 2];

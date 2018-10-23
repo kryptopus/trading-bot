@@ -1,3 +1,4 @@
+const {inspect} = require("util");
 const api = require("binance");
 const BigNumber = require("bignumber.js");
 const ExchangeSymbol = require("../model/ExchangeSymbol");
@@ -45,7 +46,7 @@ module.exports = class Binance {
     try {
       binanceOrder = await this.binanceRest.newOrder(orderRequest);
     } catch (error) {
-      console.error("Unable to buy", orderRequest);
+      process.stderr.write(`Unable to buy: ${inspect(orderRequest)}\n`);
       throw new Error(`Unable to buy: ${error.msg} (Code ${error.code})`);
     }
     const order = this.convertOrder(baseAsset, quoteAsset, binanceOrder);
@@ -69,7 +70,7 @@ module.exports = class Binance {
     try {
       binanceOrder = await this.binanceRest.newOrder(orderRequest);
     } catch (error) {
-      console.error("Unable to sell", orderRequest);
+      process.stderr.write(`Unable to sell: ${inspect(orderRequest)}\n`);
       throw new Error(`Unable to sell: ${error.msg} (Code ${error.code})`);
     }
     const order = this.convertOrder(baseAsset, quoteAsset, binanceOrder);
@@ -94,7 +95,6 @@ module.exports = class Binance {
     const lastPrice = await this.priceFetcher.fetch(exchangeSymbol);
 
     const stepSize = this.getDefinitionStepSize(definition);
-    const basePrecision = this.getDefinitionBasePrecision(definition);
 
     const quoteQuantityLimit = new BigNumber(this.applyFee(quoteQuantity));
     let baseQuantity = new BigNumber(0);
