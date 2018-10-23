@@ -1,0 +1,6 @@
+unit-tests:
+  image: node:10
+  before_script:
+    - npm ci
+  script: 
+    - npm test
